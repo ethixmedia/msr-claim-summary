@@ -100,6 +100,8 @@ export default function Summary({ claims }) {
   const [query, setQuery] = useState('')
   const [deptFilter, setDeptFilter] = useState([])
   const [statusFilter, setStatusFilter] = useState([])
+  const [systemFilter, setSystemFilter] = useState([])
+  const [supplierFilter, setSupplierFilter] = useState([])
   const [sortKey, setSortKey] = useState('id')
   const [sortDir, setSortDir] = useState('asc')
   const [page, setPage] = useState(1)
@@ -107,11 +109,15 @@ export default function Summary({ claims }) {
 
   const depts = useMemo(() => [...new Set(claims.map((c) => c.dept))].sort(), [claims])
   const statuses = useMemo(() => [...new Set(claims.map((c) => c.status))].sort(), [claims])
+  const systems = useMemo(() => [...new Set(claims.map((c) => c.system).filter(Boolean))].sort(), [claims])
+  const suppliers = useMemo(() => [...new Set(claims.map((c) => c.supplier).filter(Boolean))].sort(), [claims])
 
   const filtered = useMemo(() => {
     let list = claims
     if (deptFilter.length) list = list.filter((c) => deptFilter.includes(c.dept))
     if (statusFilter.length) list = list.filter((c) => statusFilter.includes(c.status))
+    if (systemFilter.length) list = list.filter((c) => systemFilter.includes(c.system))
+    if (supplierFilter.length) list = list.filter((c) => supplierFilter.includes(c.supplier))
     if (query.trim()) {
       const q = query.trim().toLowerCase()
       list = list.filter(
@@ -130,7 +136,7 @@ export default function Summary({ claims }) {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [claims, deptFilter, statusFilter, query, sortKey, sortDir])
+  }, [claims, deptFilter, statusFilter, systemFilter, supplierFilter, query, sortKey, sortDir])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pageClamped = Math.min(page, totalPages)
@@ -145,11 +151,14 @@ export default function Summary({ claims }) {
     setPage(1)
   }
 
-  const hasActiveFilters = deptFilter.length > 0 || statusFilter.length > 0 || query.trim().length > 0
+  const hasActiveFilters =
+    deptFilter.length > 0 || statusFilter.length > 0 || systemFilter.length > 0 || supplierFilter.length > 0 || query.trim().length > 0
 
   function clearAll() {
     setDeptFilter([])
     setStatusFilter([])
+    setSystemFilter([])
+    setSupplierFilter([])
     setQuery('')
     setPage(1)
   }
@@ -176,9 +185,11 @@ export default function Summary({ claims }) {
             className="w-full bg-panel border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-orange/50"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <MultiSelect label="Department" options={depts} selected={deptFilter} onChange={(v) => { setDeptFilter(v); setPage(1) }} />
           <MultiSelect label="Status" options={statuses} selected={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1) }} />
+          <MultiSelect label="System/Equipment" options={systems} selected={systemFilter} onChange={(v) => { setSystemFilter(v); setPage(1) }} />
+          <MultiSelect label="Supplier" options={suppliers} selected={supplierFilter} onChange={(v) => { setSupplierFilter(v); setPage(1) }} />
           {hasActiveFilters && (
             <button onClick={clearAll} className="text-xs text-white/40 hover:text-white flex items-center gap-1 px-2">
               <X className="w-3.5 h-3.5" /> Clear
