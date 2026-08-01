@@ -1,6 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Search, X, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal, ArrowUpDown, Package } from 'lucide-react'
-import { statusBadgeClasses } from './statusStyles'
 
 const PAGE_SIZE = 30
 
@@ -61,19 +60,21 @@ function DetailRow({ label, value }) {
   )
 }
 
-function Drawer({ claim, relatedParts, onClose }) {
-  if (!claim) return null
+function Drawer({ item, onClose }) {
+  if (!item) return null
   return (
     <div className="fixed inset-0 z-30 flex justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-[#141414] border-l border-white/10 h-full overflow-y-auto animate-[slideIn_0.2s_ease-out]">
+      <div className="relative w-full max-w-md bg-[#141414] border-l border-white/10 h-full overflow-y-auto">
         <div
           className="sticky top-0 bg-[#141414]/95 backdrop-blur border-b border-white/10 px-5 py-4 flex items-start justify-between"
           style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
         >
           <div>
-            <p className="text-orange text-xs font-medium">{claim.id}</p>
-            <p className="text-white font-medium text-sm mt-1 pr-4">{claim.title}</p>
+            <p className="text-orange text-xs font-medium">
+              {item.gfrNumbers.length ? item.gfrNumbers.join(', ') : item.claimRef || 'No claim reference'}
+            </p>
+            <p className="text-white font-medium text-sm mt-1 pr-4">{item.desc}</p>
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white shrink-0">
             <X className="w-5 h-5" />
@@ -81,99 +82,70 @@ function Drawer({ claim, relatedParts, onClose }) {
         </div>
         <div className="px-5 py-2" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
           <div className="flex items-center gap-2 py-3 border-b border-white/5">
-            <span className={`text-xs px-2 py-1 rounded-md border ${statusBadgeClasses(claim.status)}`}>{claim.status}</span>
-            <span className="text-xs px-2 py-1 rounded-md border border-white/15 text-white/60">{claim.priority} priority</span>
-          </div>
-          <DetailRow label="Ship Department" value={claim.dept} />
-          <DetailRow label="GFR Description" value={claim.desc} />
-          <DetailRow label="Supplier" value={claim.supplier} />
-          <DetailRow label="System / Equipment" value={claim.system} />
-          <DetailRow label="Opening Date" value={claim.openDate} />
-          <DetailRow label="Closing Date" value={claim.closeDate} />
-          <DetailRow label="Rejection Date" value={claim.rejectDate} />
-          <DetailRow label="Deck" value={claim.deck} />
-          <DetailRow label="MVZ (Fire Zone)" value={claim.mvz} />
-
-          <div className="pt-4 mt-2 border-t border-white/10">
-            <p className="flex items-center gap-1.5 text-white/50 text-xs uppercase tracking-wide mb-3">
-              <Package className="w-3.5 h-3.5" /> Spare Parts Received
-            </p>
-            {relatedParts && relatedParts.length > 0 ? (
-              <div className="space-y-2">
-                {relatedParts.map((p) => (
-                  <div key={p.rowId} className="bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2.5">
-                    <p className="text-white/90 text-sm">{p.desc || '—'}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-white/40 text-xs">
-                        {p.date || 'Date unknown'}{p.qty != null ? ` · Qty ${p.qty} ${p.unit}` : ''}
-                      </span>
-                      {p.vendor && <span className="text-white/30 text-xs truncate max-w-[45%]">{p.vendor}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-white/30 text-sm">No spare parts recorded for this claim yet.</p>
+            <span className="text-xs px-2 py-1 rounded-md border border-white/15 text-white/60">{item.dept}</span>
+            {item.qty != null && (
+              <span className="text-xs px-2 py-1 rounded-md border border-teal/30 bg-teal/10 text-teal">
+                Qty: {item.qty} {item.unit}
+              </span>
             )}
           </div>
+          <DetailRow label="Linked GFR Claim(s)" value={item.gfrNumbers.length ? item.gfrNumbers.join(', ') : 'Not linked to a GFR number'} />
+          <DetailRow label="Original Claim Reference" value={item.claimRef} />
+          <DetailRow label="Description" value={item.desc} />
+          <DetailRow label="Quantity" value={item.qty != null ? `${item.qty} ${item.unit}`.trim() : null} />
+          <DetailRow label="Vendor" value={item.vendor} />
+          <DetailRow label="Department" value={item.dept} />
+          <DetailRow label="Location / Handover" value={item.location} />
+          <DetailRow label="Tracking Reference" value={item.tracking} />
+          <DetailRow label="Alt. Tracking Reference" value={item.trackingAlt} />
+          <DetailRow label="Date Received" value={item.date} />
         </div>
       </div>
     </div>
   )
 }
 
-export default function Summary({ claims, spareParts = [] }) {
+export default function SpareParts({ parts }) {
   const [query, setQuery] = useState('')
   const [deptFilter, setDeptFilter] = useState([])
-  const [statusFilter, setStatusFilter] = useState([])
-  const [systemFilter, setSystemFilter] = useState([])
-  const [supplierFilter, setSupplierFilter] = useState([])
-  const [sortKey, setSortKey] = useState('id')
-  const [sortDir, setSortDir] = useState('asc')
+  const [vendorFilter, setVendorFilter] = useState([])
+  const [sortKey, setSortKey] = useState('date')
+  const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
 
-  const depts = useMemo(() => [...new Set(claims.map((c) => c.dept))].sort(), [claims])
-  const statuses = useMemo(() => [...new Set(claims.map((c) => c.status))].sort(), [claims])
-  const systems = useMemo(() => [...new Set(claims.map((c) => c.system).filter(Boolean))].sort(), [claims])
-  const suppliers = useMemo(() => [...new Set(claims.map((c) => c.supplier).filter(Boolean))].sort(), [claims])
-
-  const partsByGfr = useMemo(() => {
-    const map = {}
-    for (const p of spareParts) {
-      for (const gfr of p.gfrNumbers) {
-        if (!map[gfr]) map[gfr] = []
-        map[gfr].push(p)
-      }
-    }
-    return map
-  }, [spareParts])
+  const depts = useMemo(() => [...new Set(parts.map((p) => p.dept))].sort(), [parts])
+  const vendors = useMemo(() => [...new Set(parts.map((p) => p.vendor).filter(Boolean))].sort(), [parts])
 
   const filtered = useMemo(() => {
-    let list = claims
-    if (deptFilter.length) list = list.filter((c) => deptFilter.includes(c.dept))
-    if (statusFilter.length) list = list.filter((c) => statusFilter.includes(c.status))
-    if (systemFilter.length) list = list.filter((c) => systemFilter.includes(c.system))
-    if (supplierFilter.length) list = list.filter((c) => supplierFilter.includes(c.supplier))
+    let list = parts
+    if (deptFilter.length) list = list.filter((p) => deptFilter.includes(p.dept))
+    if (vendorFilter.length) list = list.filter((p) => vendorFilter.includes(p.vendor))
     if (query.trim()) {
       const q = query.trim().toLowerCase()
       list = list.filter(
-        (c) =>
-          c.id.toLowerCase().includes(q) ||
-          c.title.toLowerCase().includes(q) ||
-          c.dept.toLowerCase().includes(q) ||
-          (c.system && c.system.toLowerCase().includes(q)) ||
-          (c.supplier && c.supplier.toLowerCase().includes(q))
+        (p) =>
+          p.desc.toLowerCase().includes(q) ||
+          p.claimRef.toLowerCase().includes(q) ||
+          p.gfrNumbers.some((g) => g.toLowerCase().includes(q)) ||
+          p.dept.toLowerCase().includes(q) ||
+          (p.vendor && p.vendor.toLowerCase().includes(q))
       )
     }
     const sorted = [...list].sort((a, b) => {
-      const av = (a[sortKey] || '').toString()
-      const bv = (b[sortKey] || '').toString()
+      let av, bv
+      if (sortKey === 'gfr') {
+        av = a.gfrNumbers[0] || a.claimRef || ''
+        bv = b.gfrNumbers[0] || b.claimRef || ''
+      } else {
+        av = (a[sortKey] || '').toString()
+        bv = (b[sortKey] || '').toString()
+      }
       const cmp = av.localeCompare(bv, undefined, { numeric: true })
       return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [claims, deptFilter, statusFilter, systemFilter, supplierFilter, query, sortKey, sortDir])
+  }, [parts, deptFilter, vendorFilter, query, sortKey, sortDir])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pageClamped = Math.min(page, totalPages)
@@ -188,23 +160,20 @@ export default function Summary({ claims, spareParts = [] }) {
     setPage(1)
   }
 
-  const hasActiveFilters =
-    deptFilter.length > 0 || statusFilter.length > 0 || systemFilter.length > 0 || supplierFilter.length > 0 || query.trim().length > 0
+  const hasActiveFilters = deptFilter.length > 0 || vendorFilter.length > 0 || query.trim().length > 0
 
   function clearAll() {
     setDeptFilter([])
-    setStatusFilter([])
-    setSystemFilter([])
-    setSupplierFilter([])
+    setVendorFilter([])
     setQuery('')
     setPage(1)
   }
 
   const columns = [
-    { key: 'dept', label: 'Ship Department', width: 'w-[16%]' },
-    { key: 'id', label: 'GFR Number', width: 'w-[12%]' },
-    { key: 'title', label: 'GFR Title', width: 'w-[42%]' },
-    { key: 'status', label: 'Status', width: 'w-[15%]' },
+    { key: 'gfr', label: 'GFR No.', width: 'w-[16%]' },
+    { key: 'dept', label: 'Department', width: 'w-[16%]' },
+    { key: 'desc', label: 'What Received', width: 'w-[42%]' },
+    { key: 'date', label: 'Date', width: 'w-[12%]' },
   ]
 
   return (
@@ -218,15 +187,13 @@ export default function Summary({ claims, spareParts = [] }) {
               setQuery(e.target.value)
               setPage(1)
             }}
-            placeholder="Search by GFR number, title, department, system, supplier…"
+            placeholder="Search by GFR number, item, department, vendor…"
             className="w-full bg-panel border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-orange/50"
           />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <MultiSelect label="Department" options={depts} selected={deptFilter} onChange={(v) => { setDeptFilter(v); setPage(1) }} />
-          <MultiSelect label="Status" options={statuses} selected={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1) }} />
-          <MultiSelect label="System/Equipment" options={systems} selected={systemFilter} onChange={(v) => { setSystemFilter(v); setPage(1) }} />
-          <MultiSelect label="Supplier" options={suppliers} selected={supplierFilter} onChange={(v) => { setSupplierFilter(v); setPage(1) }} />
+          <MultiSelect label="Vendor" options={vendors} selected={vendorFilter} onChange={(v) => { setVendorFilter(v); setPage(1) }} />
           {hasActiveFilters && (
             <button onClick={clearAll} className="text-xs text-white/40 hover:text-white flex items-center gap-1 px-2">
               <X className="w-3.5 h-3.5" /> Clear
@@ -237,33 +204,37 @@ export default function Summary({ claims, spareParts = [] }) {
 
       <div className="flex items-center justify-between text-xs text-white/35 px-1">
         <span className="flex items-center gap-1.5">
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          {filtered.length.toLocaleString()} of {claims.length.toLocaleString()} claims
+          <Package className="w-3.5 h-3.5" />
+          {filtered.length.toLocaleString()} of {parts.length.toLocaleString()} received items
         </span>
         <span>Page {pageClamped} of {totalPages}</span>
       </div>
 
-      {/* Mobile: card list, title front and center */}
+      {/* Mobile: card list */}
       <div className="md:hidden bg-panel border border-white/10 rounded-2xl overflow-hidden">
         {pageItems.length === 0 && (
-          <div className="px-4 py-12 text-center text-white/30 text-sm">No claims match your search or filters.</div>
+          <div className="px-4 py-12 text-center text-white/30 text-sm">No received items match your search or filters.</div>
         )}
         <div className="divide-y divide-white/5">
-          {pageItems.map((c) => (
+          {pageItems.map((p) => (
             <button
-              key={c.id}
-              onClick={() => setSelected(c)}
+              key={p.rowId}
+              onClick={() => setSelected(p)}
               className="w-full text-left px-4 py-4 active:bg-white/[0.04] transition-colors"
             >
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-orange text-xs font-semibold tracking-wide">{c.id}</span>
-                <span className={`text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap shrink-0 ${statusBadgeClasses(c.status)}`}>
-                  {c.status}
+                <span className="text-orange text-xs font-semibold tracking-wide truncate">
+                  {p.gfrNumbers.length ? p.gfrNumbers.join(', ') : p.claimRef || 'No claim ref'}
+                </span>
+                <span className="text-[11px] px-2 py-0.5 rounded-md border border-white/15 text-white/60 whitespace-nowrap shrink-0">
+                  {p.dept}
                 </span>
               </div>
-              <p className="text-white text-base leading-snug font-medium mb-2">{c.title}</p>
+              <p className="text-white text-base leading-snug font-medium mb-2">{p.desc || '—'}</p>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-white/40 text-xs truncate">{c.dept}</span>
+                <span className="text-white/40 text-xs truncate">
+                  {p.date || ''}{p.qty != null ? ` · Qty ${p.qty} ${p.unit}` : ''}
+                </span>
                 <span className="text-orange/80 text-xs font-medium shrink-0">View more →</span>
               </div>
             </button>
@@ -293,21 +264,19 @@ export default function Summary({ claims, spareParts = [] }) {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((c) => (
-                <tr key={c.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                  <td className="px-4 py-3 text-white/70 truncate max-w-0">{c.dept}</td>
-                  <td className="px-4 py-3 text-orange font-medium whitespace-nowrap">{c.id}</td>
+              {pageItems.map((p) => (
+                <tr key={p.rowId} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                  <td className="px-4 py-3 text-orange font-medium whitespace-nowrap">
+                    {p.gfrNumbers.length ? p.gfrNumbers.join(', ') : p.claimRef || '—'}
+                  </td>
+                  <td className="px-4 py-3 text-white/70 truncate max-w-0">{p.dept}</td>
                   <td className="px-4 py-3 text-white/85">
-                    <span className="line-clamp-2">{c.title}</span>
+                    <span className="line-clamp-2">{p.desc || '—'}</span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-md border whitespace-nowrap ${statusBadgeClasses(c.status)}`}>
-                      {c.status}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3 text-white/50 whitespace-nowrap">{p.date || '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => setSelected(c)}
+                      onClick={() => setSelected(p)}
                       className="text-xs text-white/50 hover:text-orange border border-white/15 hover:border-orange/50 rounded-lg px-2.5 py-1.5 transition-colors whitespace-nowrap"
                     >
                       View more
@@ -318,7 +287,7 @@ export default function Summary({ claims, spareParts = [] }) {
               {pageItems.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center text-white/30 text-sm">
-                    No claims match your search or filters.
+                    No received items match your search or filters.
                   </td>
                 </tr>
               )}
@@ -347,7 +316,7 @@ export default function Summary({ claims, spareParts = [] }) {
         </button>
       </div>
 
-      <Drawer claim={selected} relatedParts={selected ? partsByGfr[selected.id] : null} onClose={() => setSelected(null)} />
+      <Drawer item={selected} onClose={() => setSelected(null)} />
     </div>
   )
 }

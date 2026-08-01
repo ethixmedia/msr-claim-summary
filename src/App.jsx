@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, ListChecks, ShipWheel, LogOut } from 'lucide-react'
+import { LayoutDashboard, ListChecks, ShipWheel, LogOut, Package } from 'lucide-react'
+import Splash from './Splash'
 import Login from './Login'
 import Dashboard from './Dashboard'
 import Summary from './Summary'
+import SpareParts from './SpareParts'
 import { claimsData, lastUpdated } from './claimsData'
+import { spareData } from './spareData'
 import { usePwaUpdates, UpdateBanner, OfflinePill, RefreshCheckButton } from './UpdateBanner'
 
 const ALLOWED_DOMAIN = '@meinschiffrelax.com'
@@ -13,6 +16,8 @@ export default function App() {
   const [email, setEmail] = useState(null)
   const [checked, setChecked] = useState(false)
   const [tab, setTab] = useState('dashboard')
+  const [showSplash, setShowSplash] = useState(true)
+  const [splashFadingOut, setSplashFadingOut] = useState(false)
   const { needRefresh, offlineReady, isOffline, checking, checkForUpdates, applyUpdate, dismissOfflineReady } = usePwaUpdates()
 
   useEffect(() => {
@@ -21,16 +26,28 @@ export default function App() {
     setChecked(true)
   }, [])
 
+  // Show the splash for a short minimum time so it reads as an intentional
+  // loading screen rather than a flash, then fade it out — only on first load.
+  useEffect(() => {
+    if (!checked) return
+    const holdTimer = setTimeout(() => {
+      setSplashFadingOut(true)
+      setTimeout(() => setShowSplash(false), 500)
+    }, 900)
+    return () => clearTimeout(holdTimer)
+  }, [checked])
+
   function handleLogout() {
     localStorage.removeItem(STORAGE_KEY)
     setEmail(null)
   }
 
-  if (!checked) return null
+  if (!checked) return <Splash fadingOut={false} />
 
   if (!email) {
     return (
       <>
+        {showSplash && <Splash fadingOut={splashFadingOut} />}
         <Login onSuccess={setEmail} />
         <UpdateBanner
           needRefresh={needRefresh}
@@ -44,6 +61,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-ink font-body">
+      {showSplash && <Splash fadingOut={splashFadingOut} />}
       <header
         className="sticky top-0 z-10 bg-ink/95 backdrop-blur border-b border-white/10"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
@@ -78,6 +96,15 @@ export default function App() {
               <ListChecks className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Summary</span>
             </button>
+            <button
+              onClick={() => setTab('spareparts')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                tab === 'spareparts' ? 'bg-orange text-white' : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Spare Parts</span>
+            </button>
           </nav>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -95,7 +122,9 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        {tab === 'dashboard' ? <Dashboard claims={claimsData} /> : <Summary claims={claimsData} />}
+        {tab === 'dashboard' && <Dashboard claims={claimsData} />}
+        {tab === 'summary' && <Summary claims={claimsData} spareParts={spareData} />}
+        {tab === 'spareparts' && <SpareParts parts={spareData} />}
       </main>
 
       <footer className="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center text-white/20 text-xs">
