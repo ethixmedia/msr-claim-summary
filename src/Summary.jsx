@@ -206,7 +206,36 @@ export default function Summary({ claims }) {
         <span>Page {pageClamped} of {totalPages}</span>
       </div>
 
-      <div className="bg-panel border border-white/10 rounded-2xl overflow-hidden">
+      {/* Mobile: card list, title front and center */}
+      <div className="md:hidden bg-panel border border-white/10 rounded-2xl overflow-hidden">
+        {pageItems.length === 0 && (
+          <div className="px-4 py-12 text-center text-white/30 text-sm">No claims match your search or filters.</div>
+        )}
+        <div className="divide-y divide-white/5">
+          {pageItems.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSelected(c)}
+              className="w-full text-left px-4 py-4 active:bg-white/[0.04] transition-colors"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-orange text-xs font-semibold tracking-wide">{c.id}</span>
+                <span className={`text-[11px] px-2 py-0.5 rounded-md border whitespace-nowrap shrink-0 ${statusBadgeClasses(c.status)}`}>
+                  {c.status}
+                </span>
+              </div>
+              <p className="text-white text-base leading-snug font-medium mb-2">{c.title}</p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-white/40 text-xs truncate">{c.dept}</span>
+                <span className="text-orange/80 text-xs font-medium shrink-0">View more →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: sortable table */}
+      <div className="hidden md:block bg-panel border border-white/10 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -259,26 +288,26 @@ export default function Summary({ claims }) {
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
-          <button
-            disabled={pageClamped <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="flex items-center gap-1 text-xs text-white/50 hover:text-white disabled:opacity-25 disabled:hover:text-white/50 px-2 py-1"
-          >
-            <ChevronLeft className="w-4 h-4" /> Prev
-          </button>
-          <span className="text-xs text-white/30">
-            Showing {(pageClamped - 1) * PAGE_SIZE + 1}–{Math.min(pageClamped * PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()}
-          </span>
-          <button
-            disabled={pageClamped >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="flex items-center gap-1 text-xs text-white/50 hover:text-white disabled:opacity-25 disabled:hover:text-white/50 px-2 py-1"
-          >
-            Next <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="bg-panel border border-white/10 rounded-2xl flex items-center justify-between px-4 py-3">
+        <button
+          disabled={pageClamped <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="flex items-center gap-1 text-xs text-white/50 hover:text-white disabled:opacity-25 disabled:hover:text-white/50 px-2 py-1"
+        >
+          <ChevronLeft className="w-4 h-4" /> Prev
+        </button>
+        <span className="text-xs text-white/30 text-center">
+          {(pageClamped - 1) * PAGE_SIZE + 1}–{Math.min(pageClamped * PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()}
+        </span>
+        <button
+          disabled={pageClamped >= totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          className="flex items-center gap-1 text-xs text-white/50 hover:text-white disabled:opacity-25 disabled:hover:text-white/50 px-2 py-1"
+        >
+          Next <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       <Drawer claim={selected} onClose={() => setSelected(null)} />
