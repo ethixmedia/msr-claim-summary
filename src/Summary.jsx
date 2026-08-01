@@ -67,7 +67,10 @@ function Drawer({ claim, onClose }) {
     <div className="fixed inset-0 z-30 flex justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md bg-[#141414] border-l border-white/10 h-full overflow-y-auto animate-[slideIn_0.2s_ease-out]">
-        <div className="sticky top-0 bg-[#141414]/95 backdrop-blur border-b border-white/10 px-5 py-4 flex items-start justify-between">
+        <div
+          className="sticky top-0 bg-[#141414]/95 backdrop-blur border-b border-white/10 px-5 py-4 flex items-start justify-between"
+          style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
+        >
           <div>
             <p className="text-orange text-xs font-medium">{claim.id}</p>
             <p className="text-white font-medium text-sm mt-1 pr-4">{claim.title}</p>
@@ -76,7 +79,7 @@ function Drawer({ claim, onClose }) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-5 py-2">
+        <div className="px-5 py-2" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
           <div className="flex items-center gap-2 py-3 border-b border-white/5">
             <span className={`text-xs px-2 py-1 rounded-md border ${statusBadgeClasses(claim.status)}`}>{claim.status}</span>
             <span className="text-xs px-2 py-1 rounded-md border border-white/15 text-white/60">{claim.priority} priority</span>
