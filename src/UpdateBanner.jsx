@@ -59,7 +59,7 @@ export function usePwaUpdates() {
 export function UpdateBanner({ needRefresh, offlineReady, onApplyUpdate, onDismissOfflineReady }) {
   if (needRefresh) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm">
+      <div className="fixed left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <div className="bg-panel border border-orange/40 rounded-2xl px-4 py-3 shadow-xl flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-orange/15 border border-orange/30 flex items-center justify-center shrink-0">
             <Download className="w-4 h-4 text-orange" />
@@ -81,7 +81,7 @@ export function UpdateBanner({ needRefresh, offlineReady, onApplyUpdate, onDismi
 
   if (offlineReady) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm">
+      <div className="fixed left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <div className="bg-panel border border-teal/30 rounded-2xl px-4 py-3 shadow-xl flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-teal/15 border border-teal/30 flex items-center justify-center shrink-0">
             <Download className="w-4 h-4 text-teal" />
