@@ -4,6 +4,7 @@ import Login from './Login'
 import Dashboard from './Dashboard'
 import Summary from './Summary'
 import { claimsData, lastUpdated } from './claimsData'
+import { usePwaUpdates, UpdateBanner, OfflinePill, RefreshCheckButton } from './UpdateBanner'
 
 const ALLOWED_DOMAIN = '@meinschiffrelax.com'
 const STORAGE_KEY = 'msrClaimSummaryEmail'
@@ -12,6 +13,7 @@ export default function App() {
   const [email, setEmail] = useState(null)
   const [checked, setChecked] = useState(false)
   const [tab, setTab] = useState('dashboard')
+  const { needRefresh, offlineReady, isOffline, checking, checkForUpdates, applyUpdate, dismissOfflineReady } = usePwaUpdates()
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -27,7 +29,17 @@ export default function App() {
   if (!checked) return null
 
   if (!email) {
-    return <Login onSuccess={setEmail} />
+    return (
+      <>
+        <Login onSuccess={setEmail} />
+        <UpdateBanner
+          needRefresh={needRefresh}
+          offlineReady={offlineReady}
+          onApplyUpdate={applyUpdate}
+          onDismissOfflineReady={dismissOfflineReady}
+        />
+      </>
+    )
   }
 
   return (
@@ -65,13 +77,17 @@ export default function App() {
             </button>
           </nav>
 
-          <button
-            onClick={handleLogout}
-            title="Sign out"
-            className="text-white/30 hover:text-white/70 transition-colors p-2"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <OfflinePill isOffline={isOffline} />
+            <RefreshCheckButton checking={checking} onCheck={checkForUpdates} />
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="text-white/30 hover:text-white/70 transition-colors p-2"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -82,6 +98,13 @@ export default function App() {
       <footer className="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center text-white/20 text-xs">
         Data refreshed weekly by Guarantee Engineer
       </footer>
+
+      <UpdateBanner
+        needRefresh={needRefresh}
+        offlineReady={offlineReady}
+        onApplyUpdate={applyUpdate}
+        onDismissOfflineReady={dismissOfflineReady}
+      />
     </div>
   )
 }
